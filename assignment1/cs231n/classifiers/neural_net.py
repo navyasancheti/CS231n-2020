@@ -70,7 +70,8 @@ class TwoLayerNet(object):
         W1, b1 = self.params['W1'], self.params['b1']
         W2, b2 = self.params['W2'], self.params['b2']
         N, D = X.shape
-        num_train=X.shape[0]
+        num_classes=W2.shape[1]
+
 
         # Compute the forward pass
         scores = None
@@ -84,8 +85,8 @@ class TwoLayerNet(object):
         h1 = X.dot(W1) + b1
         h1[h1<0] = 0
 
-        scores = h1.dot(W2) + b2
-
+        h2 = h1.dot(W2) + b2
+        scores=h2.copy()
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -104,10 +105,11 @@ class TwoLayerNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         scores -= np.max(scores,axis=1)[:,None]
-        correct_arr = np.matrix(scores[np.arange(num_train),y]).T
+        correct_arr = np.matrix(scores[np.arange(N),y]).T
         den_sum = np.sum(np.exp(scores),axis=1)
 
         P = np.exp(correct_arr)/den_sum
+        P[P==0]=10**-10
         loss = - np.mean(np.log(P))
         loss += reg*(np.sum(W1*W1)+ np.sum(W2*W2))
 
@@ -124,20 +126,27 @@ class TwoLayerNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
  
         S = np.exp(scores) / np.sum(np.exp(scores), axis=1)[:,None] # (N, C)
-        S_corr = S - np.equal(np.arange(num_classes), y[:,None]) # (N, C)
-        dW2 += np.dot(h1.T, S_corr) # (D, C)
-        dW2 /= num_train
+        S_corr = S - np.equal(np.arange(num_classes), y[:,None]) # (N, C) 
+        S_corr /= N
 
-        db2 = np.sum(S_corr, axis=0)
-        hidden = S_corr.dot(W2.T)
-        hidden[h1 == 0] = 0
-        dW1 = X.T.dot(hidden)
-        # db1 = np.ones((1, num_train)).dot(hidden)
-        db1 = np.sum(hidden, axis=0)
-        grads['W2'] = dW2 + 2 * reg * W2
-        grads['b2'] = db2
-        grads['W1'] = dW1 + 2 * reg * W1
-        grads['b1'] = db1
+        grads['W2'] = np.dot(h1.T, S_corr) # (D, C)
+        grads['W2'] += 2 * reg * W2
+
+        grads['b2'] = np.sum(S_corr, axis=0)
+        dh1 = S_corr.dot(W2.T)
+        dh1[h1 == 0] = 0
+
+        dh1_1 = np.ones(h1.shape)
+        dh1_1[ h1 < 0] = 0
+        dh1_1 *= dh1
+
+        grads['W1'] = X.T.dot(dh1_1)
+        grads['W1'] += 2 * reg * W1
+
+        grads['b1'] = np.sum(dh1_1, axis=0)
+
+
+        
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -182,7 +191,7 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pos=np.random.choice(X.shape[0],batch_size,replace=True)
+            pos=np.random.choice(num_train,batch_size,replace=True)
             X_batch = X[pos,:]
             y_batch = y[pos]
 
@@ -200,10 +209,10 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            self.params['W2'] -= learning_rate_decay*grads['W2']
-            self.params['W1'] -= learning_rate_decay*grads['W1']
-            self.params['b2'] -= learning_rate_decay*grads['b2']
-            self.params['b1'] -= learning_rate_decay*grads['b1']
+            self.params['W2'] -= learning_rate*grads['W2']
+            self.params['W1'] -= learning_rate*grads['W1']
+            self.params['b2'] -= learning_rate*grads['b2']
+            self.params['b1'] -= learning_rate*grads['b1']
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 

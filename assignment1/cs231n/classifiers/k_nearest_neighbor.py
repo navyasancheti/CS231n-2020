@@ -69,6 +69,7 @@ class KNearestNeighbor(object):
         dists = np.zeros((num_test, num_train))
         for i in range(num_test):
             for j in range(num_train):
+
                 #####################################################################
                 # TODO:                                                             #
                 # Compute the l2 distance between the ith test point and the jth    #
@@ -76,8 +77,8 @@ class KNearestNeighbor(object):
                 # not use a loop over dimension, nor use np.linalg.norm().          #
                 #####################################################################
                 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-                pass
+                
+              dists[i,j]=np.sqrt(np.sum((self.X_train[j,:]-X[i,:])**2))
 
                 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -101,7 +102,8 @@ class KNearestNeighbor(object):
             #######################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            dists[i,:]=np.sqrt(np.sum((self.X_train-X[i,:])**2,axis=1))
+
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -130,8 +132,12 @@ class KNearestNeighbor(object):
         #       and two broadcast sums.                                         #
         #########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        xtr2= np.sum(self.X_train**2,axis=1)
+        xte2= np.sum(X**2,axis=1)[:,np.newaxis]
+        xtr_te=2*np.dot(X,self.X_train.T)
 
-        pass
+      
+        dists=np.sqrt(xtr2 + xte2 - xtr_te)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
@@ -164,7 +170,9 @@ class KNearestNeighbor(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            
+            pos=np.argsort(dists[i,:]).tolist()[:k]
+            closest_y = [ self.y_train[z] for z in pos ]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
             #########################################################################
@@ -176,7 +184,15 @@ class KNearestNeighbor(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            freq = {}
+            for j in closest_y:
+              if j in freq:
+                freq[j] += 1
+              else:
+                freq[j] = 1
+
+            y_pred[i]=np.array([v[0] for v in sorted(freq.items(), key=lambda kv: (-kv[1], kv[0]))])[0]
+
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 

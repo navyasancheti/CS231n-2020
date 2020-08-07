@@ -36,13 +36,15 @@ def svm_loss_naive(W, X, y, reg):
             margin = scores[j] - correct_class_score + 1 # note delta = 1
             if margin > 0:
                 loss += margin
+                dW[:,j]=dW[:,j]+X[i,:]
+                dW[:,y[i]]=dW[:,y[i]]-X[i,:]
 
     # Right now the loss is a sum over all training examples, but we want it
     # to be an average instead so we divide by num_train.
     loss /= num_train
 
     # Add regularization to the loss.
-    loss += reg * np.sum(W * W)
+    loss += 0.5*reg * np.linalg.norm(W)**2
 
     #############################################################################
     # TODO:                                                                     #
@@ -54,7 +56,9 @@ def svm_loss_naive(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+
+    dW /= num_train
+    dW= dW + reg*W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     
@@ -63,13 +67,17 @@ def svm_loss_naive(W, X, y, reg):
 
 
 def svm_loss_vectorized(W, X, y, reg):
+  
     """
     Structured SVM loss function, vectorized implementation.
 
     Inputs and outputs are the same as svm_loss_naive.
     """
+
     loss = 0.0
     dW = np.zeros(W.shape) # initialize the gradient as zero
+
+
 
     #############################################################################
     # TODO:                                                                     #
@@ -78,7 +86,23 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    num_classes  = W.shape[1]
+    num_features = W.shape[0]
+    num_train    = X.shape[0]
+
+    scores  = np.dot(X,W)
+
+    correct_scores = scores[np.arange(num_train), y]
+    margin = scores - correct_scores.reshape(num_train,1) + 1
+    margin[np.arange(num_train), y] = 0
+    thresh = np.maximum(np.zeros((num_train,num_classes)), margin)
+
+    #sum over all non-correct classes
+    loss = np.sum(thresh)
+    loss /= num_train
+
+    loss += 0.5 * reg * np.linalg.norm(W)**2
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -93,8 +117,21 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    
+    thresh[thresh > 0] = 1
+    above_threshold = np.sum(thresh, axis=1)
 
+    thresh[np.arange(num_train),y] = -above_threshold[np.arange(num_train)]
+    #NOTE: I found that this was faster than using :,y
+    #      unsure if this is due to copying or some other checks being called
+    #      during vectorized operations.
+
+    dW = np.dot(X.T, thresh)
+
+    dW /= num_train
+    dW += reg * W
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     return loss, dW
+
+  

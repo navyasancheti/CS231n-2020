@@ -24,7 +24,7 @@ def softmax_loss_naive(W, X, y, reg):
     # Initialize the loss and gradient to zero.
     loss = 0.0
     dW = np.zeros_like(W)
-
+    num_train= X.shape[0]
     #############################################################################
     # TODO: Compute the softmax loss and its gradient using explicit loops.     #
     # Store the loss in loss and the gradient in dW. If you are not careful     #
@@ -33,7 +33,32 @@ def softmax_loss_naive(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    scores=X.dot(W) 
+    for i in range(num_train):
+      den_sum=0
+      max_score=np.max(scores[i,:])
+      arr=scores[i].copy()
+      arr -=max_score
+
+      den_sum = np.sum(np.exp(arr))
+      correct_score = arr[y[i]]
+      prob = np.exp(correct_score) / den_sum
+      loss += -np.log(prob)
+
+      for j in range(scores.shape[1]):
+        Sj = np.exp(scores[i,j]-np.max(scores[i,:]))/den_sum        
+
+        if j==y[i]:
+            dW[:,j] += X[i] * (Sj - 1)
+        else:
+            dW[:,j] += X[i] * (Sj)
+
+    loss/= num_train
+    loss += 0.05*reg *np.sum(W*W)
+
+    dW /=num_train
+    dW += reg*W
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -49,6 +74,8 @@ def softmax_loss_vectorized(W, X, y, reg):
     # Initialize the loss and gradient to zero.
     loss = 0.0
     dW = np.zeros_like(W)
+    num_train=X.shape[0]
+    num_classes=W.shape[1]
 
     #############################################################################
     # TODO: Compute the softmax loss and its gradient using no explicit loops.  #
@@ -57,8 +84,25 @@ def softmax_loss_vectorized(W, X, y, reg):
     # regularization!                                                           #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    scores= X.dot(W)
+    max_arr=np.max(scores,axis=1)
 
-    pass
+    scores -= max_arr[:,None]
+
+    correct_arr = np.matrix(scores[np.arange(num_train),y]).T
+    den_sum = np.sum(np.exp(scores),axis=1)
+
+    P = np.exp(correct_arr)/den_sum
+    loss = - np.mean(np.log(P))
+
+    S = np.exp(scores) / np.sum(np.exp(scores), axis=1)[:,None] # (N, C)
+    S_corr = S - np.equal(np.arange(num_classes), y[:,None]) # (N, C)
+    dW += np.dot(X.T, S_corr) # (D, C)
+    dW /= num_train
+
+    dW += reg*W
+    loss += 0.05*reg*np.sum(W*W)
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
